@@ -1,32 +1,66 @@
-// Intro about this project
+// Intro about this program
 // Video recorded
 
+// The application form is prone to frequent changes.
+// Update these variables to reflect any changes in the form.
 var formUrl = "https://docs.google.com/forms/d/1PDQjAXXF9TTKFwtHjVHsNzIuH6D3eXn-mqFmetab88c/edit";
-var form = FormApp.openByUrl(formUrl);
-var formSheetId = form.getDestinationId();
-var formSheet = SpreadsheetApp.openById(formSheetId);
 var internalDriveId = "1QIwzrrSNl6WqIjX55BY55fQ6_Vw9Gtl5";
 var parentFolderId = "1ktU2mzhB1rGbVyxGIIDq4V2CblYHaZyZ";
-var parentFolder = DriveApp.getFolderById(parentFolderId);
 var minutesTemplateId = "1TRJGuduquuOtu8wpV-AmK_UUjHuggnXvFDUBFKO9gQk";
 var commentSheetId = "1OiW0FKIjcui6qY9n0FgIcbf1yZbioI6FGY54AgXktdU";
 var trackerSheetId = "1PtkOfr48Turfb8sQZBC45pl2Wxq6RTh451xARNK4i4A";
 
+var form = FormApp.openByUrl(formUrl);
+var formSheetId = form.getDestinationId();
+var formSheet = SpreadsheetApp.openById(formSheetId);
+var parentFolder = DriveApp.getFolderById(parentFolderId);
+
+// Form Sheet variables
+var applicantName_idx = 2;
+var applicantType_idx = 9; // Column C
+var pdOrgName_idx = 12; // Column F
+var requested_idx = 5; // Column K
+var appType_idx = 6; // Column L
+var projectTitle_idx = 13; // Column N
+var totalAmount_idx = 8; // Column O
+var conferenceName_idx = 14; // Column P
+var approved_idx = 25; // Column Z
+var clubOrgName_idx = 10;
+/*
+var applicantType_idx = 2; // Column C
+var pdOrgName_idx = 5; // Column F
+var appLink_idx = 8; // Column I
+var suppLink_idx = 9; // Column J
+var requested_idx = 10; // Column K
+var appType_idx = 11; // Column L
+var prev_idx = 12; // Column M
+var projectTitle_idx = 13; // Column N
+var totalAmount_idx = 14; // Column O
+var conferenceName_idx = 15; // Column P
+var approved_idx = 24; // Column Z
+*/
+
 var today = new Date();
 var thisMonth = today.toLocaleString('default', { month: 'long' });
 var thisYear = today.getFullYear();
-var members = ["Suyeon Park", "Kenneth Sulimro", "Edlyn Li", "Beatriz Correa de Mello", "Kelvin Lo", "Zayneb Hussain", "Sean Huang"];
+var members = ["Suyeon Park",
+               "Kenneth Sulimro",
+               "Edlyn Li",
+               "Beatriz Correa de Mello",
+               "Kelvin Lo", "Zayneb Hussain",
+               "Sean Huang"];
 var numMembers = members.length;
 
 var projectDirectorships = [];
 var specialProjects = [];
 var conferenceFunding = [];
 
+
 function openForm() {
   // Delete all the responses in the form (files in the drive and data in the spreadsheet remain intact)
   form.deleteAllResponses();
 
-  // Rename the linked sheet
+  // Archive the current linked sheet
   var responseSheet = formSheet.getSheets()[0];
   responseSheet.setName(thisMonth + " " + thisYear);
 
@@ -35,12 +69,6 @@ function openForm() {
   form.setDestination(FormApp.DestinationType.SPREADSHEET, formSheetId);
 
   Logger.log("The application data has been saved to the new monthly sheet.")
-
-  // Clear all rows from row 2 to the last row
-  var lastRow = linkedSheet.getLastRow();
-  if (lastRow > 1) {
-    linkedSheet.getRange(2, 1, lastRow - 1, linkedSheet.getLastColumn()).clearContent();
-  }
 
   // Make a new monthly folder in the drive
   var newFolder = parentFolder.createFolder(thisMonth + " " + thisYear + " Meeting");
@@ -345,117 +373,143 @@ function insertTables(table, minutesBody, appData, namePrefix) {
 
 
 function createBudgetTracker() {
-  var data = formSheet.getActiveSheet().getDataRange().getValues();
+  var data = formSheet.getSheets()[1].getDataRange().getValues();
 
   for (var i = 1; i < data.length; i++) {
     var row = data[i];
-    var applicationType = row[6]; // Column G
-
-    if (row[9] == "Individual") {
-      var organizationName = row[2]; // Column C
-    }
-    else if (row[9] == "Project directorship") {
-      var organizationName = row[12]; // Column M
-    }
-    else if (row[9] == "Student club") {
-      var organizationName = row[10]; // Column K
-    }
-    else {
-      Logger.log("Option not on the list");
-      continue;
-    }
+    var organizationName = row[pdOrgName_idx] || row[clubOrgName_idx] || row[applicantName_idx];
+    var eventName = row[projectTitle_idx] || row[conferenceName_idx];
+    var applicationType = row[appType_idx];
     
     var extractedData = {
       organizationName: organizationName,
-      applicationType: applicationType,
-      requested: row[5], // Column F
-      approved: row[24] // Column Z
+      requested: row[requested_idx],
+      approved: row[approved_idx],
+      eventName: eventName
     };
 
     // Push extracted data into the corresponding array based on the application type
-    if (applicationType === "Project Directorships") {
-      projectDirectorships.push(extractedData);
+    switch (applicationType) {
+      case "Project Directorships":
+        projectDirectorships.push(extractedData);
+        break;
+      case "Special Projects":
+        specialProjects.push(extractedData);
+        break;
+      case "Conference Funding":
+        conferenceFunding.push(extractedData);
+        break;
+      default:
+        Logger.log("Option not on the list");
+        continue;
     }
-    else if (applicationType === "Special Projects") {
-      extractedData.projectTitle = row[13];
-      specialProjects.push(extractedData);
-    }
-    else if (applicationType === "Conference Funding") {
-      extractedData.confName = row[14];
-      conferenceFunding.push(extractedData);
-    }
-    else {
-      Logger.log("Option not on the list");
-      continue;
-    }
+
   }
 
-  insertBudgetTracker(projectDirectorships);
-  //insertBudgetTracker(specialProjects);
-  //insertBudgetTracker(conferenceFunding);
+  insertBudgetTracker(projectDirectorships, "Project Directorships");
+  insertBudgetTracker(specialProjects, "Special Projects");
+  insertBudgetTracker(conferenceFunding, "Conference Funding");
 }
 
-function insertBudgetTracker(appData) {
+function insertBudgetTracker(appData, applicationType) {
   var budgetTracker = SpreadsheetApp.openById(trackerSheetId);
-  var applicationType = appData[0].applicationType;
   var sheet = budgetTracker.getSheetByName(applicationType);
 
+  var organizationName = "";
+  var columnBValues = [];
+  var rowIndex = 0;
+  var startIndex = 0;
+
   // If organization name is in the spreadsheet, get to that row line and add a new row, new value and change the range of sum
-  var columnBValues = sheet.getRange("B:B").getValues();
   for (var i = 0; i < appData.length; i++) {
-    var organizationName = appData[i].organizationName;
-    var rowIndex = columnBValues.indexOf(organizationName);
+    organizationName = appData[i].organizationName;
+    columnBValues = sheet.getRange("B:B").getValues().flat();
+    rowIndex = columnBValues.indexOf(organizationName);
 
     // If org name is in the spreadsheet, append the requested value
     if (rowIndex !== -1) {
       var endIndex = columnBValues.indexOf(organizationName + " Total");
-      sheet.insertRowBefore(endIndex - 1);
-      sheet.getRange(endIndex - 2, 3).setValue(appData[i].approved);
-      sheet.getRange(endIndex - 2, 4).setValue(appData[i].requested);
-      sheet.getRange(endIndex - 2, 5).setValue(today);
-      sheet.getRange(endIndex, 4).setFormula(`=SUM(D${rowIndex + 1}:D${endIndex - 2})`);
+
+      sheet.insertRowBefore(endIndex);
+
+      startIndex = rowIndex + 2
+      rowIndex = endIndex;
     }
 
     // If org name is new, find the correct position
     else {
       rowIndex = 4;
 
-      // Find the correct position alphabetically
-      for (var j = 0; j < columnBValues.length; j++) {
-        if (columnBValues[j][0] > organizationName) {
-          rowIndex = j + 1;
-          break;
-        }
-      }
-
-      Logger.log(rowIndex);
-
-      // Insert new rows
+      // Insert a new section (5 columns)
       for (var j = 0; j < 5; j++) {
         sheet.insertRowBefore(rowIndex);
       }
-
+      
+      // Insert data
       sheet.getRange(rowIndex + 1, 2).setValue(organizationName).setFontWeight('bold');
-      sheet.getRange(rowIndex + 2, 3).setValue(appData[i].approved);
-      sheet.getRange(rowIndex + 2, 4).setValue(appData[i].requested);
-      sheet.getRange(rowIndex + 2, 5).setValue(today);
       sheet.getRange(rowIndex + 4, 2).setValue(organizationName + " Total");
-      sheet.getRange(rowIndex + 4, 4).setFormula(`=SUM(D${rowIndex + 2})`);
 
-      if (applicationType == "Special Projects") {
-        sheet.getRange(rowIndex + 2, 8).setValue(appData[i].projecTitle);
-      }
-      if (applicationType == "Conference Funding") {
-        sheet.getRange(rowIndex + 2, 8).setValue(appData[i].conferenceName);
-      }
-
+      // Apply background color and border
       for (var col = 2; col <= 8; col++) {
         var cell = sheet.getRange(rowIndex + 4, col);
-
-        // Apply background color and border
         cell.setBackground("#fff2cc") // Light yellow
           .setBorder(true, null, null, null, null, null, 'black', SpreadsheetApp.BorderStyle.SOLID_MEDIUM);
       }
+
+      rowIndex += 2;
+      startIndex = rowIndex;
+    }
+
+    if (appData[i].approved == "TABLED") {
+      sheet.getRange(rowIndex, 3)
+        .setValue(appData[i].approved)
+        .setFontWeight("bold")
+        .setFontColor("red")
+        .setHorizontalAlignment("right");
+    }
+    else {
+      sheet.getRange(rowIndex, 3).setValue(appData[i].approved);
+    }
+    sheet.getRange(rowIndex, 4).setValue(appData[i].requested);
+    sheet.getRange(rowIndex, 5).setValue(today);
+    sheet.getRange(rowIndex, 8).setValue(appData[i].eventName);
+
+    sheet.getRange(rowIndex + 2, 3).setFormula(`=SUM(C${startIndex}:C${rowIndex})`);
+    sheet.getRange(rowIndex + 2, 4).setFormula(`=SUM(D${startIndex}:D${rowIndex})`);
+  }
+
+  setSumFormulaForTotalBudget(sheet);
+}
+
+
+function setSumFormulaForTotalBudget(sheet) {
+  var data = sheet.getRange("B:B").getValues();
+
+  var rowIndices = [];
+  for (var i = 0; i < data.length; i++) {
+    if (data[i][0] && data[i][0].toString().includes("Total")) { // Check if any cell in column B contains "Total"
+      rowIndices.push(i + 1);
     }
   }
+  
+  if (rowIndices.length === 0) {
+    Logger.log('No rows with "Total" found.');
+    return;
+  }
+  
+  // Create a formula string to sum values in column C at these row indices
+  var columns = ['C', 'D'];
+
+  columns.forEach(function(col) {
+    var lastRow = sheet.getLastRow();
+
+    var cellReferences = rowIndices.map(function(rowIndex) {
+      return col + rowIndex;
+    }).join(',');
+    
+    var formula = '=SUM(' + cellReferences + ')';
+    
+    var targetCell = sheet.getRange(col + lastRow);
+    targetCell.setFormula(formula);
+  });
 }
