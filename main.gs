@@ -1,10 +1,13 @@
+// Intro about this project
+// Video recorded
+
 var formUrl = "https://docs.google.com/forms/d/1PDQjAXXF9TTKFwtHjVHsNzIuH6D3eXn-mqFmetab88c/edit";
 var form = FormApp.openByUrl(formUrl);
 var formSheetId = form.getDestinationId();
 var formSheet = SpreadsheetApp.openById(formSheetId);
 var internalDriveId = "1QIwzrrSNl6WqIjX55BY55fQ6_Vw9Gtl5";
 var parentFolderId = "1ktU2mzhB1rGbVyxGIIDq4V2CblYHaZyZ";
-var monthFolder = DriveApp.getFolderById(parentFolderId);
+var parentFolder = DriveApp.getFolderById(parentFolderId);
 var minutesTemplateId = "1TRJGuduquuOtu8wpV-AmK_UUjHuggnXvFDUBFKO9gQk";
 var commentSheetId = "1OiW0FKIjcui6qY9n0FgIcbf1yZbioI6FGY54AgXktdU";
 var trackerSheetId = "1PtkOfr48Turfb8sQZBC45pl2Wxq6RTh451xARNK4i4A";
@@ -12,9 +15,8 @@ var trackerSheetId = "1PtkOfr48Turfb8sQZBC45pl2Wxq6RTh451xARNK4i4A";
 var today = new Date();
 var thisMonth = today.toLocaleString('default', { month: 'long' });
 var thisYear = today.getFullYear();
-
 var members = ["Suyeon Park", "Kenneth Sulimro", "Edlyn Li", "Beatriz Correa de Mello", "Kelvin Lo", "Zayneb Hussain", "Sean Huang"];
-var numMembers = members.length();
+var numMembers = members.length;
 
 var projectDirectorships = [];
 var specialProjects = [];
@@ -24,16 +26,33 @@ function openForm() {
   // Delete all the responses in the form (files in the drive and data in the spreadsheet remain intact)
   form.deleteAllResponses();
 
-  // Redirect all the future monthly submissions to a new sheet
-  var sheetName = Utilities.formatDate(new Date(), "Canada/Toronto", 'MMMM yyyy');
-  var newSheet = formSheet.insertSheet(sheetName);
+  // Rename the linked sheet
+  var responseSheet = formSheet.getSheets()[0];
+  responseSheet.setName(thisMonth + " " + thisYear);
 
-  // Google Forms sends responses to the first sheet in the linked spreadsheet
-  // Move the new sheet to be the first sheet
-  formSheet.setActiveSheet(newSheet);
-  formSheet.moveActiveSheet(1);
+  // Unlink and relink the spreadsheet to create another linked sheet
+  form.removeDestination();
+  form.setDestination(FormApp.DestinationType.SPREADSHEET, formSheetId);
 
-  Logger.log("Form responses will be directed to the sheet: " + sheetName);
+  Logger.log("The application data has been saved to the new monthly sheet.")
+
+  // Clear all rows from row 2 to the last row
+  var lastRow = linkedSheet.getLastRow();
+  if (lastRow > 1) {
+    linkedSheet.getRange(2, 1, lastRow - 1, linkedSheet.getLastColumn()).clearContent();
+  }
+
+  // Make a new monthly folder in the drive
+  var newFolder = parentFolder.createFolder(thisMonth + " " + thisYear + " Meeting");
+  PropertiesService.getScriptProperties().setProperty('monthFolderId', newFolder.getId());
+  PropertiesService.getScriptProperties().setProperty('monthFolderUrl', newFolder.getUrl());
+
+  // Create subfolders in the new monthly folder
+  newFolder.createFolder('Project Directorships');
+  newFolder.createFolder('Special Projects');
+  newFolder.createFolder('Conference Funding');
+
+  Logger.log("Monthly folder created.");
 
   // Open the form
   form.setAcceptingResponses(true);
@@ -59,7 +78,6 @@ function onFormSubmit(e) {
   // Get the form response
   var formResponse = e.response;
   var itemResponses = formResponse.getItemResponses();
-  Logger.log("Got item responses");
 
   var targetFolder = null;
   var response = '';
@@ -81,6 +99,7 @@ function onFormSubmit(e) {
 
   // If no target folder found, log an error and exit
   if (!targetFolder) {
+    Logger.log("Target folder doesn't exist.")
     return;
   }
 
@@ -104,7 +123,7 @@ function onFormSubmit(e) {
 }
 
 
-function closeTheForm(){
+function closeTheForm() {
   form.setAcceptingResponses(false);
   Logger.log("The form is closed.")
 
@@ -113,6 +132,8 @@ function closeTheForm(){
   //createCommentSheet();
   createMeetingMinutes();
   //createBudgetTracker();
+
+  Logger.log("All done. Congrats for finishing another month. Make Finance Secretary Life Better.");
 }
 
 
@@ -375,13 +396,9 @@ function createBudgetTracker() {
 }
 
 function insertBudgetTracker(appData) {
-  Logger.log(appData);
-
   var budgetTracker = SpreadsheetApp.openById(trackerSheetId);
   var applicationType = appData[0].applicationType;
   var sheet = budgetTracker.getSheetByName(applicationType);
-
-  var date = "July-22";
 
   // If organization name is in the spreadsheet, get to that row line and add a new row, new value and change the range of sum
   var columnBValues = sheet.getRange("B:B").getValues();
@@ -395,7 +412,7 @@ function insertBudgetTracker(appData) {
       sheet.insertRowBefore(endIndex - 1);
       sheet.getRange(endIndex - 2, 3).setValue(appData[i].approved);
       sheet.getRange(endIndex - 2, 4).setValue(appData[i].requested);
-      sheet.getRange(endIndex - 2, 5).setValue(appData[i].date);
+      sheet.getRange(endIndex - 2, 5).setValue(today);
       sheet.getRange(endIndex, 4).setFormula(`=SUM(D${rowIndex + 1}:D${endIndex - 2})`);
     }
 
@@ -421,7 +438,7 @@ function insertBudgetTracker(appData) {
       sheet.getRange(rowIndex + 1, 2).setValue(organizationName).setFontWeight('bold');
       sheet.getRange(rowIndex + 2, 3).setValue(appData[i].approved);
       sheet.getRange(rowIndex + 2, 4).setValue(appData[i].requested);
-      sheet.getRange(rowIndex + 2, 5).setValue(appData[i].date);
+      sheet.getRange(rowIndex + 2, 5).setValue(today);
       sheet.getRange(rowIndex + 4, 2).setValue(organizationName + " Total");
       sheet.getRange(rowIndex + 4, 4).setFormula(`=SUM(D${rowIndex + 2})`);
 
@@ -442,19 +459,3 @@ function insertBudgetTracker(appData) {
     }
   }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
