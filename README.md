@@ -15,8 +15,10 @@ link
 
 # Link to the project
 If you are the VP Finance or Finance Secretary, your school Google account has access to this project. Finance Committee members interested in MFSLB can request access from them.
+
 Project Link: https://docs.google.com/forms/d/e/1FAIpQLSdjxaAfj50x-fuVmNvdYEdU6vJ0Oy_ilLi1hajKTcsJts19JA/viewform?usp=sharing
 
 # Contact
 For any issues or questions, please reach out to me.
-email: suyeon.park1216@gmail.com
+
+Email: suyeon.park1216@gmail.com
