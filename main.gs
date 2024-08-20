@@ -1,5 +1,16 @@
+/*
+TODO: don't use the RNG, just randomize order then apply ppls names
+Status: not started
+
+TODO: inspect why 6 projects weren't assigned ppl to review in the comment sheet
+Status: not started
+
+TODO: add functionality to get conf date/time/place on budget tracker
+Status: not started
+*/
+
 // Intro about this program
-// Video recorded
+// link: 
 
 // The application form is prone to frequent changes.
 // Update these variables to reflect any changes in the form.
@@ -15,20 +26,10 @@ var formSheetId = form.getDestinationId();
 var formSheet = SpreadsheetApp.openById(formSheetId);
 var parentFolder = DriveApp.getFolderById(parentFolderId);
 
-// Form Sheet variables
-var applicantName_idx = 2;
-var applicantType_idx = 9; // Column C
-var pdOrgName_idx = 12; // Column F
-var requested_idx = 5; // Column K
-var appType_idx = 6; // Column L
-var projectTitle_idx = 13; // Column N
-var totalAmount_idx = 8; // Column O
-var conferenceName_idx = 14; // Column P
-var approved_idx = 25; // Column Z
-var clubOrgName_idx = 10;
-/*
 var applicantType_idx = 2; // Column C
+var clubOrgName_idx = 4; // Column E
 var pdOrgName_idx = 5; // Column F
+var applicantName_idx = 7; // Column H
 var appLink_idx = 8; // Column I
 var suppLink_idx = 9; // Column J
 var requested_idx = 10; // Column K
@@ -37,8 +38,8 @@ var prev_idx = 12; // Column M
 var projectTitle_idx = 13; // Column N
 var totalAmount_idx = 14; // Column O
 var conferenceName_idx = 15; // Column P
-var approved_idx = 24; // Column Z
-*/
+var approved_idx = 16; // Column Q
+
 
 var today = new Date();
 var thisMonth = today.toLocaleString('default', { month: 'long' });
@@ -47,7 +48,8 @@ var members = ["Suyeon Park",
                "Kenneth Sulimro",
                "Edlyn Li",
                "Beatriz Correa de Mello",
-               "Kelvin Lo", "Zayneb Hussain",
+               "Kelvin Lo", 
+               "Zayneb Hussain",
                "Sean Huang"];
 var numMembers = members.length;
 
@@ -157,7 +159,7 @@ function closeTheForm() {
 
   // Make a comment sheet and meeting minutes
   extractData();
-  //createCommentSheet();
+  createCommentSheet();
   createMeetingMinutes();
   //createBudgetTracker();
 
@@ -171,16 +173,17 @@ function extractData() {
 
   for (var i = 1; i < data.length; i++) {
     var row = data[i];
-    var applicationType = row[6]; // Column G
+    var applicationType = row[appType_idx];
+    var applicantType = row[applicantType_idx];
 
-    if (row[9] == "Individual") {
-      var organizationName = row[2]; // Column C
+    if (applicantType == "Individual") {
+      var organizationName = row[applicantName_idx];
     }
-    else if (row[9] == "Project directorship") {
-      var organizationName = row[12]; // Column M
+    else if (applicantType == "Project directorship") {
+      var organizationName = row[pdOrgName_idx];
     }
-    else if (row[9] == "Student club") {
-      var organizationName = row[10]; // Column K
+    else if (applicantType == "Student club") {
+      var organizationName = row[clubOrgName_idx];
     }
     else {
       Logger.log("Option not on the list");
@@ -190,21 +193,21 @@ function extractData() {
     var extractedData = {
       organizationName: organizationName,
       applicationType: applicationType,
-      applicationLink: row[3], // Column D
-      suppFileLink: row[4], // Column E
-      requested: row[5], // Column F
+      applicationLink: row[appLink_idx],
+      suppFileLink: row[suppLink_idx],
+      requested: row[requested_idx]
     };
 
     // Push extracted data into the corresponding array based on the application type
     if (applicationType === "Project Directorships") {
-      extractedData.previous = row[7];
+      extractedData.previous = row[prev_idx];
       projectDirectorships.push(extractedData);
     }
     else if (applicationType === "Special Projects") {
       specialProjects.push(extractedData);
     }
     else if (applicationType === "Conference Funding") {
-      extractedData.totalAmount = row[8];
+      extractedData.totalAmount = row[totalAmount_idx];
       conferenceFunding.push(extractedData);
     }
   }
