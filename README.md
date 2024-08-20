@@ -16,7 +16,7 @@ link
 # Link to the project
 If you are the VP Finance or Finance Secretary, your school Google account has access to this project. Finance Committee members interested in MFSLB can request access from them.
 
-Project Link: https://docs.google.com/forms/d/e/1FAIpQLSdjxaAfj50x-fuVmNvdYEdU6vJ0Oy_ilLi1hajKTcsJts19JA/viewform?usp=sharing
+Project Link: [https://docs.google.com/forms/d/e/1FAIpQLSdjxaAfj50x-fuVmNvdYEdU6vJ0Oy_ilLi1hajKTcsJts19JA/viewform?usp=sharing](https://script.google.com/u/0/home/projects/13vFuazKy_95qw1w-bhBdJIZ-hKOiILK3uADF2UMU05AqXHDP3l9RGbfs/edit)
 
 # Contact
 For any issues or questions, please reach out to me.
