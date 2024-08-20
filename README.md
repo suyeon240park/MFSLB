@@ -1,2 +1,2 @@
 # MFSLB
-MFSLB (Make Finance Secretary Life Better) designed to automate the UofT EngSoc VP Finance Secretary's responsibilities (yes, I'm that person).
+MFSLB is a tool designed to streamline and automate the responsibilities of the Engineering Society Finance Committee. Built using JavaScript and Google Apps Script, it leverages the simplicity of the language and its integration with Google Services, such as Google Docs and Sheets. The project was developed by Finance Secretary Jenny Jung and Member Kenneth Role to alleviate the time-consuming tasks associated with preparing for monthly Finance Committee meetings, which previously took over five hours.
