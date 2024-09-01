@@ -1,352 +1,274 @@
-//Define a linked list node structure
-class Node {
-  constructor(data) {
-    this.data = data;
-    this.next = null;
-  }
+// 1. Extract application data from the SEF form spreadsheet
+// 2. Write the SEF minute
+// 3. Write the SEF tracker
+
+// Manual change is required
+var docName = "Fall 2024";
+
+var scriptProperties = PropertiesService.getScriptProperties();
+
+var formId = scriptProperties.getProperty('SEF_FORM_ID');
+var minutesTemplateId = scriptProperties.getProperty('SEF_MINUTES_TEMPLATE_ID');
+var trackerSheetId = scriptProperties.getProperty('SEF_TRACKER_SHEET_ID');
+
+var form = FormApp.openById(formId);
+var formSheetId = form.getDestinationId();
+var formSheet = SpreadsheetApp.openById(formSheetId);
+
+var sef = []
+
+var orgName_idx = 2; // Column C
+var requested_idx = 6; // Column G
+var totalAmount_idx = 7; // Column H
+var lifespan_idx = 8; // Column I
+var numStudents_idx = 9; // Column J
+var approved_idx = 10;
+
+function closeTheForm() {
+  //extractData();
+  //createMeetingMinutes();
+  createBudgetTracker();
 }
 
-//Create a LinkedList class
-class LinkedList {
-  constructor() {
-    this.head = null;
+// Extract application data from the form spreadsheet
+function extractData() {
+  // Open the SEF form spreadsheet
+  var data = formSheet.getActiveSheet().getDataRange().getValues();
+
+  for (var i = 1; i < data.length; i++) {
+    var row = data[i];
+    
+    var extractedData = {
+      organizationName: row[orgName_idx],
+      requested: row[requested_idx],
+      totalAmount: row[totalAmount_idx],
+      numStudents: row[numStudents_idx],
+      lifespan: row[lifespan_idx]
+    };
+
+    // Push extracted data into the array
+    sef.push(extractedData);
   }
 
-  
-  //Add a new node to the linked list
-  add(data) {
-    const newNode = new Node(data);
-    if (!this.head) { //if there's no node
-      this.head = newNode //create a new node as a head
-    } else {
-      let current = this.head;
-      while (current.next) {
-        current = current.next;
-      }
-      current.next = newNode;
-    }
-  }
+  // Sort each array by organization name
+  sef.sort(function(a, b) {
+    return a.organizationName.localeCompare(b.organizationName);
+  });
 
-  //Sort the linked list based on the name of an organization alphabetically
-  sort() {
-    if (!this.head) return;
+  Logger.log(sef)
 
-    let swapped;
-    do {
-      swapped = false;
-      let current = this.head;
-      let prev = null;
-
-      while (current.next) {
-        const next = current.next;
-
-        if (current.data.organization > next.data.organization) {
-          // Swap organization, requested, and totalAmount fields
-          [current.data.organization, next.data.organization] = [next.data.organization, current.data.organization];
-          [current.data.requested, next.data.requested] = [next.data.requested, current.data.requested];
-          [current.data.totalAmount, next.data.totalAmount] = [next.data.totalAmount, current.data.totalAmount];
-
-          swapped = true;
-        }
-        prev = current;
-        current = next;
-      }
-    } while (swapped);
-  }
-
-
-  toArray() {
-    const result = [];
-    let current = this.head;
-    while (current) {
-      result.push(current.data);
-      current = current.next;
-    }
-    return result;
-  }
+  Logger.log("Data are successfully extracted.")
 }
 
 
 
-//Due to unavailability to use excel files in Google Apps Script, I need to convert them to Google Spreadsheets
-function convertExcelToGoogleSS() {
-  var sourceFolderId = "1WCyfgaZCZp2S1h6T1ietzWODcT1a7vTD";
-  var sourceFolder = DriveApp.getFolderById(sourceFolderId);
+// Create a meeting minutes
+function createMeetingMinutes() {
+  // Duplicate the sample meeting minutes and rename it
+  // If the array of objects, applicationData, is not empty, search through the copied document until you find "2.0 Applications"
+  // If it is found, call a function, InsertPDTable(applicationData[i])
+  var sefFolderId = scriptProperties.getProperty('SEF_FOLDER_ID');
 
-  var files = sourceFolder.getFiles();
+  var newDocumentName = docName + ' SEF Sub-Committee Meeting Minutes';
+  var copiedDocument = DriveApp.getFileById(minutesTemplateId).makeCopy(newDocumentName, DriveApp.getFolderById(sefFolderId));
+  var minutesDoc = DocumentApp.openById(copiedDocument.getId());
+  var minutesBody = minutesDoc.getBody();
+  var tables = minutesBody.getTables();
 
-  while (files.hasNext()) {
-    var file = files.next();
-    var fileName = file.getName();
+  Logger.log("Meeting minutes created successfully.");
 
-    if (fileName.toLowerCase().endsWith('.xlsx')) {
-      var blob = file.getBlob();
-      var convertedFile = Drive.Files.insert({ title: fileName, parents: [{id: sourceFolderId}] }, blob, {
-        convert: true
-      });
+  insertTables(tables[2], minutesBody);
+  Logger.log("SEF added to meeting minutes.");
+}
 
-      if (fileName.startsWith("Copy of ")) {
-        var newFileName = fileName.substring("Copy of ".length);
-        convertedFile.setTitle(newFileName);
+// A helper function for createMeetingMinutes()
+function insertTables(table, minutesBody) {
+  var namePrefix = "2."
+  var lastInsertedTable = table;
+  var lastInsertedIndex = minutesBody.getChildIndex(lastInsertedTable);
+
+  // Formatter for currency unit
+  var formatter = new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 2
+  });
+
+  for (var i = 0; i < sef.length; i++) {
+    var data = sef[i];
+
+    // Insert the organization name text above the table
+    var paragraph = minutesBody.insertParagraph(lastInsertedIndex + 1, namePrefix + (i + 1) + " " + data.organizationName);
+    paragraph.setHeading(DocumentApp.ParagraphHeading.HEADING2);
+    paragraph.setFontFamily("Times New Roman");
+    paragraph.setFontSize(15);
+    paragraph.setSpacingAfter(10);
+
+    // Insert the copied table
+    lastInsertedTable = minutesBody.insertTable(lastInsertedIndex + 2, table.copy());
+    lastInsertedIndex = minutesBody.getChildIndex(lastInsertedTable);
+
+    // Write lifespan and number of students
+    var cell = lastInsertedTable.getRow(1).getCell(0);
+    var cellText = cell.getText();
+
+    targetText = "Number of students:";
+    if (cellText.indexOf(targetText) !== -1) {
+      var updatedText = cellText.replace(targetText, targetText + ' ' + data.numStudents);
+      cell.setText(updatedText);
+    }
+
+    var cellText = cell.getText();
+
+    targetText = "Lifespan:";
+    if (cellText.indexOf(targetText) !== -1) {
+      var updatedText = cellText.replace(targetText, targetText + ' ' + data.lifespan);
+      cell.setText(updatedText);
+    }
+
+    // Update the table cells with the application data
+    lastInsertedTable.getRow(1).getCell(2).setText(formatter.format(data.totalAmount));
+    lastInsertedTable.getRow(2).getCell(2).setText(formatter.format(data.requested));
+
+    // Add a few line breaks between tables
+    minutesBody.insertParagraph(++lastInsertedIndex, '\n');
+  }
+
+  // Remove the original table
+  table.removeFromParent();
+}
+
+
+
+function createBudgetTracker() {
+  var sheet = formSheet.getActiveSheet();
+  var data = sheet.getDataRange().getValues();
+
+  for (var i = 1; i < data.length; i++) {
+    var row = data[i];
+
+    var extractedData = {
+      organizationName: row[orgName_idx],
+      requested: row[requested_idx],
+      totalAmount: row[totalAmount_idx],
+      numStudents: row[numStudents_idx],
+      lifespan: row[lifespan_idx],
+      approved: row[approved_idx]
+    };
+
+    sef.push(extractedData);
+  }
+
+  Logger.log(sef);
+
+  // Open the tracker spreadsheet
+  var budgetTracker = SpreadsheetApp.openById(trackerSheetId);
+  var sheet = budgetTracker.getSheetByName(docName);
+
+  if (sheet) {
+    Logger.log('The sheet "' + docName + '" exists.');
+  }
+  else {
+    Logger.log("The sheet doesn't exist.");
+  }
+
+  var organizationName = "";
+  var columnBValues = [];
+  var rowIndex = 0;
+  var startIndex = 0;
+
+  // If organization name is in the spreadsheet, get to that row line and add a new row, new value and change the range of sum
+  for (var i = 0; i < sef.length; i++) {
+    organizationName = sef[i].organizationName;
+    columnBValues = sheet.getRange("B:B").getValues().flat();
+    rowIndex = columnBValues.indexOf(organizationName);
+
+    // If org name is in the spreadsheet, append the requested value
+    if (rowIndex !== -1) {
+      var endIndex = columnBValues.indexOf(organizationName + " Total");
+
+      sheet.insertRowBefore(endIndex);
+
+      startIndex = rowIndex + 2
+      rowIndex = endIndex;
+    }
+
+    // If org name is new, find the correct position
+    else {
+      rowIndex = 4;
+
+      // Insert a new section (5 columns)
+      for (var j = 0; j < 5; j++) {
+        sheet.insertRowBefore(rowIndex);
+      }
+      
+      // Insert data
+      sheet.getRange(rowIndex + 1, 2).setValue(organizationName).setFontWeight('bold');
+      sheet.getRange(rowIndex + 4, 2).setValue(organizationName + " Total");
+
+      // Apply background color and border
+      for (var col = 2; col <= 10; col++) {
+        var cell = sheet.getRange(rowIndex + 4, col);
+        cell.setBackground("#fff2cc") // Light yellow
+          .setBorder(true, null, null, null, null, null, 'black', SpreadsheetApp.BorderStyle.SOLID_MEDIUM);
       }
 
-      file.setTrashed(true);
-      Logger.log(fileName + ' successfully converted to Google Spreadsheet.');
+      rowIndex += 2;
+      startIndex = rowIndex;
+    }
+
+    if (sef[i].approved == "TABLED") {
+      sheet.getRange(rowIndex, 3)
+        .setValue(sef[i].approved)
+        .setFontWeight("bold")
+        .setFontColor("red")
+        .setHorizontalAlignment("right");
     }
     else {
-      Logger.log(fileName + ' does not need conversion.');
+      sheet.getRange(rowIndex, 3).setValue(sef[i].approved);
     }
+    sheet.getRange(rowIndex, 4).setValue(sef[i].requested); // D
+    sheet.getRange(rowIndex, 5).setValue(today); // E
+    sheet.getRange(rowIndex, 9).setValue(sef[i].numStudents); // I
+    sheet.getRange(rowIndex, 11).setValue(sef[i].lifespan); // M
+
+    sheet.getRange(rowIndex + 2, 3).setFormula(`=SUM(C${startIndex}:C${rowIndex})`);
+    sheet.getRange(rowIndex + 2, 4).setFormula(`=SUM(D${startIndex}:D${rowIndex})`);
+    sheet.getRange(rowIndex + 2, 9).setFormula(`=SUM(D${startIndex}:D${rowIndex})`);
   }
-  projectDirectorship();
+
+  setSumFormulaForTotalBudget(sheet);
 }
 
-function projectDirectorship() {
-  var sourceFolderId = '1WCyfgaZCZp2S1h6T1ietzWODcT1a7vTD';
-  var sourceFolder = DriveApp.getFolderById(sourceFolderId);
-  var i = 1;
+// Helper function of insertBudgetTracker(sef, applicationType) 
+function setSumFormulaForTotalBudget(sheet) {
+  var data = sheet.getRange("B:B").getValues();
 
-  var BudgetApplication = new LinkedList();
-
-  var files = sourceFolder.getFiles();
-
-  while (files.hasNext()) {
-    var file = files.next();
-    var fileName = file.getName();
-
-    Logger.log(i + ": " + fileName);
-
-    var requested = Number(-findRequested(file)).toFixed(2);
-    var organization = findOrganization(file);
-
-    Logger.log("Total Amount: " + totalAmount);
-    Logger.log("Requested: " + requested);
-    Logger.log("Organization: " + organization);
-
-    if (organization !== undefined && totalAmount !== undefined && requested !== undefined) {
-      BudgetApplication.add({
-        organization: organization,
-        totalAmount: totalAmount,
-        requested: requested
-      });
-    } else {
-      Logger.log('Skipping file ' + fileName + ' due to missing data.');
-    }
-    i++;
-  }
-  BudgetApplication.sort();
-  const sortedArray = BudgetApplication.toArray();
-
-  pasteToDocs(sortedArray);
-}
-
-function copyValuesFromSheetToLL() {
-  var sourceFolderId = '1WCyfgaZCZp2S1h6T1ietzWODcT1a7vTD';
-  var sourceFolder = DriveApp.getFolderById(sourceFolderId);
-  var i = 1;
-
-  var BudgetApplication = new LinkedList();
-
-  var files = sourceFolder.getFiles();
-
-  while (files.hasNext()) {
-    var file = files.next();
-    var fileName = file.getName();
-
-    Logger.log(i + ": " + fileName);
-
-    var totalAmount = Number(-findTotalAmount(file)).toFixed(2);
-    var requested = Number(-findRequested(file)).toFixed(2);
-    var organization = findOrganization(file);
-
-    Logger.log("Total Amount: " + totalAmount);
-    Logger.log("Requested: " + requested);
-    Logger.log("Organization: " + organization);
-
-    if (organization !== undefined && totalAmount !== undefined && requested !== undefined) {
-      BudgetApplication.add({
-        organization: organization,
-        totalAmount: totalAmount,
-        requested: requested
-      });
-    } else {
-      Logger.log('Skipping file ' + fileName + ' due to missing data.');
-    }
-    i++;
-  }
-  BudgetApplication.sort();
-  const sortedArray = BudgetApplication.toArray();
-
-  pasteToDocs(sortedArray);
-}
-
-//SEF Summary of Funding Recommendations
-function summary(sortedArray) {
-  //fill out the organization from first column of second row of the table to the end
-  //fill out the totalAmount from second column of second row of the table to the end
-  //fill out the requested from third column of second row of the table to the end
-  var minutes = DocumentApp.openByUrl('https://docs.google.com/document/d/1IKPfAUJPOwukva0z6bJ39VqY2aP6DigsbMJid9VVxLE/edit');
-  var body = minutes.getBody();
-  var tables = body.getTables();
-
-  if (tables.length > 0) {
-    var table = tables[0]; // Assuming you have only one table in the document
-    var numRows = sortedArray.length;
-
-    // Ensure the table has at least one row
-    if (numRows > 0) {
-      for (var i = 0; i < numRows; i++) {
-        // Append a new row for each entry in sortedArray
-        var row = table.appendTableRow();
-        
-        // Set "Organization" in the first column
-        row.appendTableCell(sortedArray[i].organization);
-        
-        // Set "Total Amount" in the second column
-        row.appendTableCell(sortedArray[i].totalAmount);
-        
-        // Set "Requested" in the third column
-        row.appendTableCell(sortedArray[i].requested);
-      }
-    } else {
-      Logger.log("No data in the sortedArray to populate the table.");
-    }
-  } else {
-    Logger.log("No table found in the document.");
-  }
-  //find the value beside a word "Approved" in a table repeatedly until the end - store it to a variable approved
-  //fill out approved from fourth column of second row of the table to the end
-}
-
-
-function pasteToDocs(sortedArray) {
-  var minutes = DocumentApp.openByUrl('https://docs.google.com/document/d/19i_TyDVukwqX4Dad4kvmIN3xtIj1cNlP4Ggh5_YIrdU/edit');
-  var body = minutes.getBody();
-
-  //table of contents
-  var text = body.editAsText();
-  var found = false;
-
-  if (!found) {
-    var textElement = body.findText("2.0 Applications");
-    if (textElement) {
-      var textPosition = textElement.getStartOffset() + 1; // Start after the "2.0 Applications" text
-      var formattedText;
-
-      for (var i = sortedArray.length - 1; i >= 0; i--) {
-        formattedText = "2." + (i + 1) + " " + sortedArray[i].organization + "\n";
-        text.insertText(textPosition, formattedText);
-      }
-    }
-    found = true;
-  }
-
-  //fill out the tables
-  var textToReplace = "2.";
-
-  // Find all occurrences of "2." in the document
-  var textElements = body.findText(textToReplace);
-  var replacementIndex = 1;
-
-  while (textElements != null && sortedArray.length >= replacementIndex) {
-    var element = textElements.getElement();
-    var startOffset = textElements.getStartOffset();
-    var endOffset = textElements.getEndOffsetInclusive();
-    var content = element.getText();
-
-    if (startOffset >= 0 && endOffset < content.length) {
-      var textToReplaceExact = content.substring(startOffset, endOffset + 1);
-      
-      if (textToReplaceExact === "2.") {
-        element.deleteText(startOffset, endOffset);
-        element.insertText(startOffset, "2." + replacementIndex + " " + sortedArray[replacementIndex - 1].organization);
-        replacementIndex++;
-      }
-    }
-
-    textElements = body.findText(textToReplace, textElements);
-  }
-
-  var tables = minutes.getBody().getTables();
-  for (var j = 0; j < sortedArray.length; j++) {
-    var table = tables[j];
-    // Set total amount and requested
-    var totalAmountCell = table.getRow(1).getCell(2);
-    var requestedCell = table.getRow(2).getCell(2);
-
-    if (sortedArray[j].totalAmount < 0) {
-      totalAmountCell.setText("-$" + Math.abs(sortedArray[j].totalAmount).toFixed(2));
-    } else {
-      totalAmountCell.setText("$" + Math.abs(sortedArray[j].totalAmount).toFixed(2));
-    }
-
-    if (sortedArray[j].requested < 0) {
-      requestedCell.setText("-$" + Math.abs(sortedArray[j].requested).toFixed(2));
-    } else {
-      requestedCell.setText("$" + Math.abs(sortedArray[j].requested).toFixed(2));
+  var rowIndices = [];
+  for (var i = 0; i < data.length; i++) {
+    if (data[i][0] && data[i][0].toString().includes("Total")) { // Check if any cell in column B contains "Total"
+      rowIndices.push(i + 1);
     }
   }
-
-}
-
-
-
-function findTotalAmount(file) {
-  var application = SpreadsheetApp.openById(file.getId());
-  var budget = application.getSheetByName("Budget");
-  if (!budget) {
-    return "Error";
+  
+  if (rowIndices.length === 0) {
+    Logger.log('No rows with "Total" found.');
+    return;
   }
-  var columnData = budget.getRange("D:D").getValues();
-  var rowIndex = -1;
+  
+  // Create a formula string to sum values in column C at these row indices
+  var columns = ['C', 'D'];
 
-  for (var i = 0; i < columnData.length; i++) {
-    if (columnData[i][0] === "Total Amount Requested") {
-      rowIndex = i;
-      break;
-    }
-  }
+  columns.forEach(function(col) {
+    var lastRow = sheet.getLastRow();
 
-  if (rowIndex !== -1 && rowIndex < columnData.length - 1) {
-    var requested = columnData[rowIndex + 1][0];
-    return requested;
-  } else {
-    return "Not Found";
-  }
-}
-
-function findRequested(file) {
-  var application = SpreadsheetApp.openById(file.getId());
-  var budget = application.getSheetByName("Budget");
-  if (!budget) {
-    return "Error";
-  }
-  var columnData = budget.getRange("D:D").getValues();
-  var rowIndex = -1;
-
-  for (var i = 0; i < columnData.length; i++) {
-    if (columnData[i][0] === "Total Amount Requested") {
-      rowIndex = i;
-      break;
-    }
-  }
-
-  if (rowIndex !== -1 && rowIndex >= 4) {
-    var totalAmount = columnData[rowIndex - 3][0];
-    return totalAmount;
-  } else {
-    return "Not Found";
-  }
-}
-
-function findOrganization(file) {
-  var application = SpreadsheetApp.openById(file.getId());
-  var budget = application.getSheetByName("Application");
-  if (!budget) {
-    return "Error";
-  }
-  var organization = budget.getRange('F15').getValue();
-  if (!organization) {
-    return budget.getRange('F14').getValue();
-  }
-  return organization;
+    var cellReferences = rowIndices.map(function(rowIndex) {
+      return col + rowIndex;
+    }).join(',');
+    
+    var formula = '=SUM(' + cellReferences + ')';
+    
+    var targetCell = sheet.getRange(col + lastRow);
+    targetCell.setFormula(formula);
+  });
 }
