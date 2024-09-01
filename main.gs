@@ -5,27 +5,41 @@ Status: not started
 TODO: inspect why 6 projects weren't assigned ppl to review in the comment sheet
 Status: not started
 
+TODO: implement SEF option in unified form
+Status: not started, assigned to Kenneth
+
 TODO: add functionality to get conf date/time/place on budget tracker
-Status: not started
+Status: Started by Kenneth.
+
+TODO: add SEF to the finance wizard.
+Status: not started, assigned to Kenneth
+
+Suyeon TO-DO:
+1. Revise EngSoc website (SEF priority)
+2. Fix the random name assignment algorithm
 */
 
 // Intro about this program
 // link: 
-
 // The application form is prone to frequent changes.
-// Update these variables to reflect any changes in the form.
-var formUrl = "https://docs.google.com/forms/d/1PDQjAXXF9TTKFwtHjVHsNzIuH6D3eXn-mqFmetab88c/edit";
-var internalDriveId = "1QIwzrrSNl6WqIjX55BY55fQ6_Vw9Gtl5";
-var parentFolderId = "1ktU2mzhB1rGbVyxGIIDq4V2CblYHaZyZ";
-var minutesTemplateId = "1TRJGuduquuOtu8wpV-AmK_UUjHuggnXvFDUBFKO9gQk";
-var commentSheetId = "1OiW0FKIjcui6qY9n0FgIcbf1yZbioI6FGY54AgXktdU";
-var trackerSheetId = "1PtkOfr48Turfb8sQZBC45pl2Wxq6RTh451xARNK4i4A";
+// Update these variables in Script Properties to reflect any changes in the future.
+var scriptProperties = PropertiesService.getScriptProperties();
+
+var formUrl = scriptProperties.getProperty('FORM_URL');
+var internalDriveId = scriptProperties.getProperty('INTERNAL_DRIVE_ID');
+var parentFolderId = scriptProperties.getProperty('PARENT_FOLDER_ID');
+var minutesTemplateId = scriptProperties.getProperty('MINUTES_TEMPLATE_ID');
+var commentSheetId = scriptProperties.getProperty('COMMENT_SHEET_ID');
+var trackerSheetId = scriptProperties.getProperty('TRACKER_SHEET_ID');
+var members = scriptProperties.getProperty('MEMBERS');
+var numMembers = members.length;
 
 var form = FormApp.openByUrl(formUrl);
 var formSheetId = form.getDestinationId();
 var formSheet = SpreadsheetApp.openById(formSheetId);
 var parentFolder = DriveApp.getFolderById(parentFolderId);
 
+// Can we build this online?
 var applicantType_idx = 2; // Column C
 var clubOrgName_idx = 4; // Column E
 var pdOrgName_idx = 5; // Column F
@@ -38,26 +52,22 @@ var prev_idx = 12; // Column M
 var projectTitle_idx = 13; // Column N
 var totalAmount_idx = 14; // Column O
 var conferenceName_idx = 15; // Column P
-var approved_idx = 16; // Column Q
+var conferenceLocation_idx = 16// Column Q
+var conferenceTime_idx = 17// Column R
+var approved_idx = 18; // Column S
 
-
+// Date
 var today = new Date();
 var thisMonth = today.toLocaleString('default', { month: 'long' });
 var thisYear = today.getFullYear();
-var members = ["Suyeon Park",
-               "Kenneth Sulimro",
-               "Edlyn Li",
-               "Beatriz Correa de Mello",
-               "Kelvin Lo", 
-               "Zayneb Hussain",
-               "Sean Huang"];
-var numMembers = members.length;
 
+// Arrays with different application types
 var projectDirectorships = [];
 var specialProjects = [];
 var conferenceFunding = [];
 
 
+// Open the form and make new monthly folders
 function openForm() {
   // Delete all the responses in the form (files in the drive and data in the spreadsheet remain intact)
   form.deleteAllResponses();
@@ -89,7 +99,7 @@ function openForm() {
   Logger.log("The unified form is now ready to work.");
 }
 
-
+// When the user submits the form, categorize applications and allocate files to corresponding folders.
 function onFormSubmit(e) {
   if (!e) { // TODO: implement debouncing
     Logger.log("Event object is undefined");
@@ -152,21 +162,23 @@ function onFormSubmit(e) {
   }
 }
 
-
+// Close the form and write meeting documents
+// Pre-meeting: extract data, comment sheet, and meeting minutes
+// Post-meeting: budget tracker
 function closeTheForm() {
   form.setAcceptingResponses(false);
   Logger.log("The form is closed.")
 
   // Make a comment sheet and meeting minutes
-  extractData();
-  createCommentSheet();
-  createMeetingMinutes();
+  //extractData();
+  //createCommentSheet();
+  //createMeetingMinutes();
   //createBudgetTracker();
 
   Logger.log("All done. Congrats for finishing another month. Make Finance Secretary Life Better.");
 }
 
-
+// Extract application data from the form spreadsheet
 function extractData() {
   // Open the unified form spreadsheet
   var data = formSheet.getActiveSheet().getDataRange().getValues();
@@ -232,6 +244,7 @@ function extractData() {
   Logger.log("Data are successfully extracted.")
 }
 
+// Create a comment sheet for Fincomm members to review the applications
 function createCommentSheet() {
   // Duplicate the comment sheet sample and rename it
   var commentSheet = SpreadsheetApp.openById(commentSheetId);
@@ -284,6 +297,7 @@ function createCommentSheet() {
   }
 }
 
+// A helper function for createCommentSheet()
 function setValuesAndColor(range, data, color) {
   var values = data.map(function(item) {
     return [item.organizationName, item.applicationType, item.applicationLink, item.suppFileLink];
@@ -295,7 +309,7 @@ function setValuesAndColor(range, data, color) {
   colorRange.setBackground(color);
 }
 
-
+// Create a meeting minutes
 function createMeetingMinutes() {
   // Duplicate the sample meeting minutes and rename it
   // If the array of objects, applicationData, is not empty, search through the copied document until you find "3.0 Budget Submission"
@@ -323,7 +337,7 @@ function createMeetingMinutes() {
   Logger.log("All meeting minutes operations completed.");
 }
 
-
+// A helper function for createMeetingMinutes()
 function insertTables(table, minutesBody, appData, namePrefix) {
   var lastInsertedTable = table;
   var lastInsertedIndex = minutesBody.getChildIndex(lastInsertedTable);
@@ -374,7 +388,8 @@ function insertTables(table, minutesBody, appData, namePrefix) {
 }
 
 
-
+// Create a budget tracker after holding a meeting
+// Remember: write approved amounts (currently in Column Q) in the spreadsheet connected to the form
 function createBudgetTracker() {
   var data = formSheet.getSheets()[1].getDataRange().getValues();
 
@@ -384,11 +399,26 @@ function createBudgetTracker() {
     var eventName = row[projectTitle_idx] || row[conferenceName_idx];
     var applicationType = row[appType_idx];
     
+    // Include information specific to each application type here.
+    // Must be updated when new categories are added.
+    var kargs = "";
+    if (row[appType_idx] == "Conference Funding"){
+      kargs = {
+        location: row[conferenceLocation_idx],
+        conf_time: row[conferenceTime_idx]
+      };
+    } else if (row[appType_idx] == "Special Projects"){
+      kargs = {};
+    } else if (row[appType_idx] == "Project Directorships"){
+      kargs = {}; 
+    }
+
     var extractedData = {
       organizationName: organizationName,
       requested: row[requested_idx],
       approved: row[approved_idx],
-      eventName: eventName
+      eventName: eventName,
+      kargs: kargs,
     };
 
     // Push extracted data into the corresponding array based on the application type
@@ -414,6 +444,7 @@ function createBudgetTracker() {
   insertBudgetTracker(conferenceFunding, "Conference Funding");
 }
 
+// Actual recording of budget tracker
 function insertBudgetTracker(appData, applicationType) {
   var budgetTracker = SpreadsheetApp.openById(trackerSheetId);
   var sheet = budgetTracker.getSheetByName(applicationType);
@@ -473,9 +504,15 @@ function insertBudgetTracker(appData, applicationType) {
     else {
       sheet.getRange(rowIndex, 3).setValue(appData[i].approved);
     }
-    sheet.getRange(rowIndex, 4).setValue(appData[i].requested);
-    sheet.getRange(rowIndex, 5).setValue(today);
-    sheet.getRange(rowIndex, 8).setValue(appData[i].eventName);
+    sheet.getRange(rowIndex, 4).setValue(appData[i].requested); // D
+    sheet.getRange(rowIndex, 5).setValue(today); // E
+    sheet.getRange(rowIndex, 8).setValue(appData[i].eventName); // H
+
+    // FLAG KENNETH - Insert conference date/time here, and find appData prerequisites to include.
+    if (applicationType == "Conference Funding"){
+      sheet.getRange(rowIndex, 11).setValue(appdata[i].kargs.location) // K
+      sheet.getRange(rowIndex, 12).setValue(appdata[i].kargs.conf_time) // L
+    }
 
     sheet.getRange(rowIndex + 2, 3).setFormula(`=SUM(C${startIndex}:C${rowIndex})`);
     sheet.getRange(rowIndex + 2, 4).setFormula(`=SUM(D${startIndex}:D${rowIndex})`);
@@ -484,7 +521,7 @@ function insertBudgetTracker(appData, applicationType) {
   setSumFormulaForTotalBudget(sheet);
 }
 
-
+// Helper function of insertBudgetTracker(appData, applicationType) 
 function setSumFormulaForTotalBudget(sheet) {
   var data = sheet.getRange("B:B").getValues();
 
