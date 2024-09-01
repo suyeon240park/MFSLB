@@ -15,7 +15,6 @@ TODO: add SEF to the finance wizard.
 Status: not started, assigned to Kenneth
 
 Suyeon TO-DO:
-1. Revise EngSoc website (SEF priority)
 2. Fix the random name assignment algorithm
 */
 
@@ -173,7 +172,7 @@ function closeTheForm() {
   //extractData();
   //createCommentSheet();
   //createMeetingMinutes();
-  //createBudgetTracker();
+  createBudgetTracker();
 
   Logger.log("All done. Congrats for finishing another month. Make Finance Secretary Life Better.");
 }
@@ -398,19 +397,15 @@ function createBudgetTracker() {
     var organizationName = row[pdOrgName_idx] || row[clubOrgName_idx] || row[applicantName_idx];
     var eventName = row[projectTitle_idx] || row[conferenceName_idx];
     var applicationType = row[appType_idx];
-    
+
     // Include information specific to each application type here.
     // Must be updated when new categories are added.
-    var kargs = "";
-    if (row[appType_idx] == "Conference Funding"){
+    var kargs = {};
+    if (applicationType == "Conference Funding"){
       kargs = {
         location: row[conferenceLocation_idx],
         conf_time: row[conferenceTime_idx]
       };
-    } else if (row[appType_idx] == "Special Projects"){
-      kargs = {};
-    } else if (row[appType_idx] == "Project Directorships"){
-      kargs = {}; 
     }
 
     var extractedData = {
@@ -418,7 +413,7 @@ function createBudgetTracker() {
       requested: row[requested_idx],
       approved: row[approved_idx],
       eventName: eventName,
-      kargs: kargs,
+      kargs: kargs
     };
 
     // Push extracted data into the corresponding array based on the application type
@@ -508,11 +503,13 @@ function insertBudgetTracker(appData, applicationType) {
     sheet.getRange(rowIndex, 5).setValue(today); // E
     sheet.getRange(rowIndex, 8).setValue(appData[i].eventName); // H
 
+    /*
     // FLAG KENNETH - Insert conference date/time here, and find appData prerequisites to include.
     if (applicationType == "Conference Funding"){
       sheet.getRange(rowIndex, 11).setValue(appdata[i].kargs.location) // K
       sheet.getRange(rowIndex, 12).setValue(appdata[i].kargs.conf_time) // L
     }
+    */
 
     sheet.getRange(rowIndex + 2, 3).setFormula(`=SUM(C${startIndex}:C${rowIndex})`);
     sheet.getRange(rowIndex + 2, 4).setFormula(`=SUM(D${startIndex}:D${rowIndex})`);
@@ -553,3 +550,19 @@ function setSumFormulaForTotalBudget(sheet) {
     targetCell.setFormula(formula);
   });
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
