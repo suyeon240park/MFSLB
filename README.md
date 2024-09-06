@@ -18,4 +18,4 @@ If you are the VP Finance or Finance Secretary, your school Google account has a
 [Project Link](https://script.google.com/u/0/home/projects/13vFuazKy_95qw1w-bhBdJIZ-hKOiILK3uADF2UMU05AqXHDP3l9RGbfs)
 
 # Contact
-For any issues or questions, please reach out to [me](suyeon.park1216@gmail.com).
+For any issues or questions, please reach out to [me](mailto:suyeon.park1216@gmail.com).
