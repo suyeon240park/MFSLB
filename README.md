@@ -12,7 +12,7 @@ Watch the introduction video [here](https://script.google.com/u/0/home/projects/
 5. **Comment Sheet**: Create a comment sheet with random member reviews of applications.
 6. **Budget Tracking**: Record approved amounts and analyze budget trends post-meeting.
 
-# Link to the project
+# Project Link
 If you are the VP Finance or Finance Secretary, your school Google account has access to this project. Finance Committee members interested in MFSLB can request access from them.
 
 [Project Link](https://script.google.com/u/0/home/projects/13vFuazKy_95qw1w-bhBdJIZ-hKOiILK3uADF2UMU05AqXHDP3l9RGbfs)
