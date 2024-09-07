@@ -3,6 +3,7 @@ MFSLB is a tool designed to streamline and automate the application processes wi
 
 # Introduction Video
 Watch the introduction video to [Finance Committee Workflow](https://www.youtube.com/watch?v=0HXMRhMQp8E)
+
 Watch the introduction video to [MFSLB Project](https://www.youtube.com/watch?v=mau6UkN7GC0)
 
 # Features
