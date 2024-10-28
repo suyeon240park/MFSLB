@@ -7,13 +7,13 @@ var docName = "Fall 2024";
 
 var scriptProperties = PropertiesService.getScriptProperties();
 
-var formId = scriptProperties.getProperty('SEF_FORM_ID');
-var minutesTemplateId = scriptProperties.getProperty('SEF_MINUTES_TEMPLATE_ID');
-var trackerSheetId = scriptProperties.getProperty('SEF_TRACKER_SHEET_ID');
+var sefFormId = scriptProperties.getProperty('SEF_FORM_ID');
+var sefMinutesTemplateId = scriptProperties.getProperty('SEF_MINUTES_TEMPLATE_ID');
+var sefTrackerSheetId = scriptProperties.getProperty('SEF_TRACKER_SHEET_ID');
 
-var form = FormApp.openById(formId);
-var formSheetId = form.getDestinationId();
-var formSheet = SpreadsheetApp.openById(formSheetId);
+var sefForm = FormApp.openById(sefFormId);
+var sefFormSheetId = sefForm.getDestinationId();
+var sefFormSheet = SpreadsheetApp.openById(sefFormSheetId);
 
 var sef = []
 
@@ -22,18 +22,19 @@ var requested_idx = 6; // Column G
 var totalAmount_idx = 7; // Column H
 var lifespan_idx = 8; // Column I
 var numStudents_idx = 9; // Column J
-var approved_idx = 10;
+var projectTitle_idx = 10; // Column K
+var approved_idx = 11; // Column L
 
-function closeTheForm() {
-  //extractData();
-  //createMeetingMinutes();
-  createBudgetTracker();
+function closeTheFormSEF() {
+  extractDataSEF();
+  createMeetingMinutesSEF();
+  //createBudgetTrackerSEF();
 }
 
 // Extract application data from the form spreadsheet
-function extractData() {
+function extractDataSEF() {
   // Open the SEF form spreadsheet
-  var data = formSheet.getActiveSheet().getDataRange().getValues();
+  var data = sefFormSheet.getActiveSheet().getDataRange().getValues();
 
   for (var i = 1; i < data.length; i++) {
     var row = data[i];
@@ -43,7 +44,8 @@ function extractData() {
       requested: row[requested_idx],
       totalAmount: row[totalAmount_idx],
       numStudents: row[numStudents_idx],
-      lifespan: row[lifespan_idx]
+      lifespan: row[lifespan_idx],
+      projectTitle: row[projectTitle_idx]
     };
 
     // Push extracted data into the array
@@ -63,26 +65,26 @@ function extractData() {
 
 
 // Create a meeting minutes
-function createMeetingMinutes() {
+function createMeetingMinutesSEF() {
   // Duplicate the sample meeting minutes and rename it
   // If the array of objects, applicationData, is not empty, search through the copied document until you find "2.0 Applications"
   // If it is found, call a function, InsertPDTable(applicationData[i])
   var sefFolderId = scriptProperties.getProperty('SEF_FOLDER_ID');
 
   var newDocumentName = docName + ' SEF Sub-Committee Meeting Minutes';
-  var copiedDocument = DriveApp.getFileById(minutesTemplateId).makeCopy(newDocumentName, DriveApp.getFolderById(sefFolderId));
+  var copiedDocument = DriveApp.getFileById(sefMinutesTemplateId).makeCopy(newDocumentName, DriveApp.getFolderById(sefFolderId));
   var minutesDoc = DocumentApp.openById(copiedDocument.getId());
   var minutesBody = minutesDoc.getBody();
   var tables = minutesBody.getTables();
 
   Logger.log("Meeting minutes created successfully.");
 
-  insertTables(tables[2], minutesBody);
+  insertTablesSEF(tables[2], minutesBody);
   Logger.log("SEF added to meeting minutes.");
 }
 
-// A helper function for createMeetingMinutes()
-function insertTables(table, minutesBody) {
+// A helper function for createMeetingMinutesSEF()
+function insertTablesSEF(table, minutesBody) {
   var namePrefix = "2."
   var lastInsertedTable = table;
   var lastInsertedIndex = minutesBody.getChildIndex(lastInsertedTable);
@@ -98,14 +100,19 @@ function insertTables(table, minutesBody) {
     var data = sef[i];
 
     // Insert the organization name text above the table
-    var paragraph = minutesBody.insertParagraph(lastInsertedIndex + 1, namePrefix + (i + 1) + " " + data.organizationName);
+    var text = namePrefix + (i + 1) + " " + data.organizationName;
+    if ((i > 0 && data.organizationName == sef[i - 1].organizationName) || (i < sef.length - 1 && data.organizationName == sef[i + 1].organizationName)) {
+      text += " - " + data.projectTitle;
+    }
+    var paragraph = minutesBody.insertParagraph(lastInsertedIndex, text);
+
     paragraph.setHeading(DocumentApp.ParagraphHeading.HEADING2);
     paragraph.setFontFamily("Times New Roman");
     paragraph.setFontSize(15);
     paragraph.setSpacingAfter(10);
 
     // Insert the copied table
-    lastInsertedTable = minutesBody.insertTable(lastInsertedIndex + 2, table.copy());
+    lastInsertedTable = minutesBody.insertTable(lastInsertedIndex + 1, table.copy());
     lastInsertedIndex = minutesBody.getChildIndex(lastInsertedTable);
 
     // Write lifespan and number of students
@@ -140,7 +147,7 @@ function insertTables(table, minutesBody) {
 
 
 
-function createBudgetTracker() {
+function createBudgetTrackerSEF() {
   var sheet = formSheet.getActiveSheet();
   var data = sheet.getDataRange().getValues();
 
@@ -162,7 +169,7 @@ function createBudgetTracker() {
   Logger.log(sef);
 
   // Open the tracker spreadsheet
-  var budgetTracker = SpreadsheetApp.openById(trackerSheetId);
+  var budgetTracker = SpreadsheetApp.openById(sefTrackerSheetId);
   var sheet = budgetTracker.getSheetByName(docName);
 
   if (sheet) {
@@ -241,7 +248,7 @@ function createBudgetTracker() {
 }
 
 // Helper function of insertBudgetTracker(sef, applicationType) 
-function setSumFormulaForTotalBudget(sheet) {
+function setSumFormulaForTotalBudgetSEF(sheet) {
   var data = sheet.getRange("B:B").getValues();
 
   var rowIndices = [];
