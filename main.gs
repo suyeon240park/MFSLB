@@ -24,16 +24,16 @@ Suyeon TO-DO:
 // Update these variables in Script Properties to reflect any changes in the future.
 var scriptProperties = PropertiesService.getScriptProperties();
 
-var formUrl = scriptProperties.getProperty('FORM_URL');
+var formId = scriptProperties.getProperty('FORM_ID');
 var internalDriveId = scriptProperties.getProperty('INTERNAL_DRIVE_ID');
 var parentFolderId = scriptProperties.getProperty('PARENT_FOLDER_ID');
 var minutesTemplateId = scriptProperties.getProperty('MINUTES_TEMPLATE_ID');
 var commentSheetId = scriptProperties.getProperty('COMMENT_SHEET_ID');
 var trackerSheetId = scriptProperties.getProperty('TRACKER_SHEET_ID');
-var members = scriptProperties.getProperty('MEMBERS');
+var members = ["Suyeon Park", "Kenneth Sulimro", "Edlyn Li", "Beatriz Correa de Mello", "Kelvin Lo", "Zayneb Hussain", "Sean Huang"];
 var numMembers = members.length;
 
-var form = FormApp.openByUrl(formUrl);
+var form = FormApp.openById(formId);
 var formSheetId = form.getDestinationId();
 var formSheet = SpreadsheetApp.openById(formSheetId);
 var parentFolder = DriveApp.getFolderById(parentFolderId);
@@ -275,25 +275,42 @@ function createCommentSheet() {
   var numApplications = startRowCF; // Will be changed later for other applications
   Logger.log(numApplications);
 
-  // Randomly list FC members, make sure each member is called an equal number of times
-  var count = new Array(numMembers).fill(0);
+  const pairs = pickDistinctMembers(numApplications);
 
-  var randomNum1 = Math.floor(Math.random() * numMembers);
-  var randomNum2 = Math.floor(Math.random() * numMembers);
-
-  for (var i = 0; i < numApplications - 4; i++) {
-    while (randomNum1 == randomNum2 || count[randomNum2] > Math.max(...count)) {
-      randomNum2 = Math.floor(Math.random() * numMembers);
-    }
-    count[randomNum1] += 1;
-    count[randomNum2] += 1;
-
-    commentSheet.getRange(5 + i, 5).setValue(members[randomNum1]);
-    commentSheet.getRange(5 + i, 7).setValue(members[randomNum2]);
-
-    randomNum1 = Math.floor(Math.random() * numMembers);
-    randomNum2 = Math.floor(Math.random() * numMembers);
+  for (let i = 0; i < numApplications; i++) {
+    commentSheet.getRange(i + 5, 5).setValue(members[pairs[0]]);
+    commentSheet.getRange(i + 5, 7).setValue(members[pairs[1]]);
   }
+}
+
+function pickDistinctMembers(appLength) {
+  const pairs = [];
+  const pairCounts = new Map(); // Map to track the counts of each pair
+
+  // Generate all possible distinct pairs
+  for (let i = 0; i < numMembers; i++) {
+    for (let j = i + 1; j < numMembers; j++) {
+      pairCounts.set(`${i},${j}`, 0); // Initialize count for each pair
+    }
+  }
+
+  for (let i = 0; i < appLength; i++) {
+    // Convert pairCounts to an array and sort based on counts
+    const sortedPairs = Array.from(pairCounts.entries())
+      .sort((a, b) => a[1] - b[1]); // Sort pairs by their counts (ascending)
+
+    // Pick a random pair from the least selected pairs
+    const leastSelectedPairs = sortedPairs.filter(pair => pair[1] === sortedPairs[0][1]);
+    const randomPairIndex = Math.floor(Math.random() * leastSelectedPairs.length);
+    const selectedPair = leastSelectedPairs[randomPairIndex][0];
+
+    // Increment the count for the selected pair
+    pairCounts.set(selectedPair, pairCounts.get(selectedPair) + 1);
+    
+    // Store the selected pair in the results
+    pairs.push(selectedPair.split(',').map(num => parseInt(num, 10)));
+  }
+  return pairs;
 }
 
 // A helper function for createCommentSheet()
@@ -550,7 +567,6 @@ function setSumFormulaForTotalBudget(sheet) {
     targetCell.setFormula(formula);
   });
 }
-
 
 
 
