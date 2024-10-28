@@ -10,6 +10,8 @@ var scriptProperties = PropertiesService.getScriptProperties();
 var sefFormId = scriptProperties.getProperty('SEF_FORM_ID');
 var sefMinutesTemplateId = scriptProperties.getProperty('SEF_MINUTES_TEMPLATE_ID');
 var sefTrackerSheetId = scriptProperties.getProperty('SEF_TRACKER_SHEET_ID');
+var sefCommentSheetId = scriptProperties.getProperty('SEF_COMMENT_SHEET_ID');
+var sefFolderUrl = scriptProperties.getProperty('SEF_FOLDER_URL');
 
 var sefForm = FormApp.openById(sefFormId);
 var sefFormSheetId = sefForm.getDestinationId();
@@ -18,6 +20,7 @@ var sefFormSheet = SpreadsheetApp.openById(sefFormSheetId);
 var sef = []
 
 var orgName_idx = 2; // Column C
+var applicationLink_idx = 5; // Column F
 var requested_idx = 6; // Column G
 var totalAmount_idx = 7; // Column H
 var lifespan_idx = 8; // Column I
@@ -27,7 +30,8 @@ var approved_idx = 11; // Column L
 
 function closeTheFormSEF() {
   extractDataSEF();
-  createMeetingMinutesSEF();
+  createCommentSheetSEF();
+  //createMeetingMinutesSEF();
   //createBudgetTrackerSEF();
 }
 
@@ -45,6 +49,7 @@ function extractDataSEF() {
       totalAmount: row[totalAmount_idx],
       numStudents: row[numStudents_idx],
       lifespan: row[lifespan_idx],
+      applicationLink: row[applicationLink_idx],
       projectTitle: row[projectTitle_idx]
     };
 
@@ -145,7 +150,26 @@ function insertTablesSEF(table, minutesBody) {
   table.removeFromParent();
 }
 
+function createCommentSheetSEF() {
+  var commentSheet = SpreadsheetApp.openById(sefCommentSheetId);
+  commentSheet = commentSheet.getSheets()[0];
+  commentSheet.getRange('C2').setValue(sefFolderUrl);
 
+  // Insert sef data
+  var range = commentSheet.getRange(5, 1, sef.length, 2);
+  var colorRange = range.getSheet().getRange(range.getRow(), 1, range.getNumRows(), 1);
+  colorRange.setBackground('#d9d2e9');
+
+  var pairs = pickDistinctMembers(sef.length);
+  Logger.log(pairs);
+
+  for (let i = 0; i < sef.length; i++) {
+    commentSheet.getRange(i + 5, 1).setValue(sef[i].organizationName);
+    commentSheet.getRange(i + 5, 2).setValue(sef[i].applicationLink);
+    commentSheet.getRange(i + 5, 3).setValue(members[pairs[i][0]]);
+    commentSheet.getRange(i + 5, 5).setValue(members[pairs[i][1]]);
+  }
+}
 
 function createBudgetTrackerSEF() {
   var sheet = formSheet.getActiveSheet();
