@@ -30,8 +30,6 @@ var parentFolderId = scriptProperties.getProperty('PARENT_FOLDER_ID');
 var minutesTemplateId = scriptProperties.getProperty('MINUTES_TEMPLATE_ID');
 var commentSheetId = scriptProperties.getProperty('COMMENT_SHEET_ID');
 var trackerSheetId = scriptProperties.getProperty('TRACKER_SHEET_ID');
-var members = ["Suyeon Park", "Kenneth Sulimro", "Edlyn Li", "Beatriz Correa de Mello", "Kelvin Lo", "Zayneb Hussain", "Sean Huang"];
-var numMembers = members.length;
 
 var form = FormApp.openById(formId);
 var formSheetId = form.getDestinationId();
@@ -39,21 +37,23 @@ var formSheet = SpreadsheetApp.openById(formSheetId);
 var parentFolder = DriveApp.getFolderById(parentFolderId);
 
 // Can we build this online?
-var applicantType_idx = 2; // Column C
-var clubOrgName_idx = 4; // Column E
-var pdOrgName_idx = 5; // Column F
-var applicantName_idx = 7; // Column H
-var appLink_idx = 8; // Column I
-var suppLink_idx = 9; // Column J
-var requested_idx = 10; // Column K
-var appType_idx = 11; // Column L
-var prev_idx = 12; // Column M
-var projectTitle_idx = 13; // Column N
-var totalAmount_idx = 14; // Column O
-var conferenceName_idx = 15; // Column P
-var conferenceLocation_idx = 16// Column Q
-var conferenceTime_idx = 17// Column R
-var approved_idx = 18; // Column S
+const applicantType_idx = 2; // Column C
+const clubOrgName_idx = 4; // Column E
+const pdOrgName_idx = 5; // Column F
+const associatedEntityName = 7; // Column G
+const applicantName_idx = 7; // Column H
+const appLink_idx = 8; // Column I
+const suppLink_idx = 9; // Column J
+const requested_idx = 10; // Column K
+const appType_idx = 11; // Column L
+const prev_idx = 12; // Column M
+const projectTitle_idx = 13; // Column N
+const totalAmount_idx = 14; // Column O
+const conferenceName_idx = 15; // Column P
+const conferenceLocation_idx = 16// Column Q
+const conferenceTime_idx = 17// Column R
+const approved_idx = 18; // Column S
+
 
 // Date
 var today = new Date();
@@ -166,13 +166,12 @@ function onFormSubmit(e) {
 // Post-meeting: budget tracker
 function closeTheForm() {
   form.setAcceptingResponses(false);
-  Logger.log("The form is closed.")
+  //Logger.log("The form is closed.")
 
   // Make a comment sheet and meeting minutes
-  //extractData();
-  //createCommentSheet();
-  //createMeetingMinutes();
-  createBudgetTracker();
+  extractData();
+  createCommentSheet();
+  createMeetingMinutes();
 
   Logger.log("All done. Congrats for finishing another month. Make Finance Secretary Life Better.");
 }
@@ -181,20 +180,22 @@ function closeTheForm() {
 function extractData() {
   // Open the unified form spreadsheet
   var data = formSheet.getActiveSheet().getDataRange().getValues();
-
+  
   for (var i = 1; i < data.length; i++) {
-    var row = data[i];
-    var applicationType = row[appType_idx];
-    var applicantType = row[applicantType_idx];
+    var applicationType = data[i][appType_idx];
+    var applicantType = data[i][applicantType_idx];
 
     if (applicantType == "Individual") {
-      var organizationName = row[applicantName_idx];
+      var organizationName = data[i][applicantName_idx];
     }
     else if (applicantType == "Project directorship") {
-      var organizationName = row[pdOrgName_idx];
+      var organizationName = data[i][pdOrgName_idx];
     }
     else if (applicantType == "Student club") {
-      var organizationName = row[clubOrgName_idx];
+      var organizationName = data[i][clubOrgName_idx];
+    }
+    else if (applicantType == "Associated entity") {
+      var organizationName = data[i][associatedEntityName];
     }
     else {
       Logger.log("Option not on the list");
@@ -204,21 +205,21 @@ function extractData() {
     var extractedData = {
       organizationName: organizationName,
       applicationType: applicationType,
-      applicationLink: row[appLink_idx],
-      suppFileLink: row[suppLink_idx],
-      requested: row[requested_idx]
+      applicationLink: data[i][appLink_idx],
+      suppFileLink: data[i][suppLink_idx],
+      requested: data[i][requested_idx]
     };
 
     // Push extracted data into the corresponding array based on the application type
     if (applicationType === "Project Directorships") {
-      extractedData.previous = row[prev_idx];
+      extractedData.previous = data[i][prev_idx];
       projectDirectorships.push(extractedData);
     }
     else if (applicationType === "Special Projects") {
       specialProjects.push(extractedData);
     }
     else if (applicationType === "Conference Funding") {
-      extractedData.totalAmount = row[totalAmount_idx];
+      extractedData.totalAmount = data[i][totalAmount_idx];
       conferenceFunding.push(extractedData);
     }
   }
@@ -272,14 +273,15 @@ function createCommentSheet() {
   var rangeCF = commentSheet.getRange(startRowCF, 1, conferenceFunding.length, 4);
   setValuesAndColor(rangeCF, conferenceFunding, '#cfe2f3'); // Light cornflower blue 3
 
-  var numApplications = startRowCF; // Will be changed later for other applications
+  var numApplications = projectDirectorships.length + specialProjects.length + conferenceFunding.length;
   Logger.log(numApplications);
 
   const pairs = pickDistinctMembers(numApplications);
+  Logger.log(pairs);
 
   for (let i = 0; i < numApplications; i++) {
-    commentSheet.getRange(i + 5, 5).setValue(members[pairs[0]]);
-    commentSheet.getRange(i + 5, 7).setValue(members[pairs[1]]);
+    commentSheet.getRange(i + 5, 5).setValue(members[pairs[i][0]]);
+    commentSheet.getRange(i + 5, 7).setValue(members[pairs[i][1]]);
   }
 }
 
@@ -405,9 +407,9 @@ function insertTables(table, minutesBody, appData, namePrefix) {
 
 
 // Create a budget tracker after holding a meeting
-// Remember: write approved amounts (currently in Column Q) in the spreadsheet connected to the form
+// Remember: write approved amounts (currently in Column S) in the spreadsheet connected to the form
 function createBudgetTracker() {
-  var data = formSheet.getSheets()[1].getDataRange().getValues();
+  var data = formSheet.getSheets()[0].getDataRange().getValues();
 
   for (var i = 1; i < data.length; i++) {
     var row = data[i];
@@ -415,22 +417,10 @@ function createBudgetTracker() {
     var eventName = row[projectTitle_idx] || row[conferenceName_idx];
     var applicationType = row[appType_idx];
 
-    // Include information specific to each application type here.
-    // Must be updated when new categories are added.
-    var kargs = {};
-    if (applicationType == "Conference Funding"){
-      kargs = {
-        location: row[conferenceLocation_idx],
-        conf_time: row[conferenceTime_idx]
-      };
-    }
-
     var extractedData = {
       organizationName: organizationName,
       requested: row[requested_idx],
-      approved: row[approved_idx],
-      eventName: eventName,
-      kargs: kargs
+      approved: row[approved_idx]
     };
 
     // Push extracted data into the corresponding array based on the application type
@@ -439,27 +429,38 @@ function createBudgetTracker() {
         projectDirectorships.push(extractedData);
         break;
       case "Special Projects":
+        extractedData["eventName"] = eventName;
         specialProjects.push(extractedData);
         break;
       case "Conference Funding":
+        extractedData["eventName"] = eventName;
+        extractedData["location"] = row[conferenceLocation_idx];
+        extractedData["eventDate"] = row[conferenceTime_idx];
         conferenceFunding.push(extractedData);
         break;
       default:
         Logger.log("Option not on the list");
         continue;
     }
-
   }
 
-  insertBudgetTracker(projectDirectorships, "Project Directorships");
-  insertBudgetTracker(specialProjects, "Special Projects");
-  insertBudgetTracker(conferenceFunding, "Conference Funding");
+  Logger.log(projectDirectorships)
+  Logger.log(specialProjects)
+  Logger.log(conferenceFunding)
+
+  insertBudgetTracker(projectDirectorships, "Project Directorships", 8);
+  insertBudgetTracker(specialProjects, "Special Projects", 9);
+  insertBudgetTracker(conferenceFunding, "Conference Funding", 12);
 }
 
 // Actual recording of budget tracker
-function insertBudgetTracker(appData, applicationType) {
+function insertBudgetTracker(appData, applicationType, numCol) {
+  var approvedDate = "11/30/2024"
   var budgetTracker = SpreadsheetApp.openById(trackerSheetId);
   var sheet = budgetTracker.getSheetByName(applicationType);
+
+  // Set everything in the sheet to Times New Roman
+  sheet.getRange(1, 1, sheet.getMaxRows(), sheet.getMaxColumns()).setFontFamily("Times New Roman");
 
   var organizationName = "";
   var columnBValues = [];
@@ -491,12 +492,15 @@ function insertBudgetTracker(appData, applicationType) {
         sheet.insertRowBefore(rowIndex);
       }
       
-      // Insert data
-      sheet.getRange(rowIndex + 1, 2).setValue(organizationName).setFontWeight('bold');
-      sheet.getRange(rowIndex + 4, 2).setValue(organizationName + " Total");
+      // Insert organization data
+      sheet.getRange(rowIndex + 1, 2)
+        .setValue(organizationName)
+        .setFontWeight('bold')
+      sheet.getRange(rowIndex + 4, 2)
+        .setValue(organizationName + " Total")
 
       // Apply background color and border
-      for (var col = 2; col <= 8; col++) {
+      for (var col = 2; col <= numCol; col++) {
         var cell = sheet.getRange(rowIndex + 4, col);
         cell.setBackground("#fff2cc") // Light yellow
           .setBorder(true, null, null, null, null, null, 'black', SpreadsheetApp.BorderStyle.SOLID_MEDIUM);
@@ -506,19 +510,35 @@ function insertBudgetTracker(appData, applicationType) {
       startIndex = rowIndex;
     }
 
+    // Set approved value with currency format
     if (appData[i].approved == "TABLED") {
       sheet.getRange(rowIndex, 3)
         .setValue(appData[i].approved)
         .setFontWeight("bold")
         .setFontColor("red")
-        .setHorizontalAlignment("right");
+        .setHorizontalAlignment("right")
+    } else {
+      sheet.getRange(rowIndex, 3)
+        .setValue(appData[i].approved)
+        .setNumberFormat("$#,##0.00")
     }
-    else {
-      sheet.getRange(rowIndex, 3).setValue(appData[i].approved);
+
+    // Set requested value with currency format
+    sheet.getRange(rowIndex, 4)
+      .setValue(appData[i].requested)
+      .setNumberFormat("$#,##0.00") // D
+
+    // Set approved date
+    sheet.getRange(rowIndex, 5).setValue(approvedDate) // E
+
+    // Set event name
+    sheet.getRange(rowIndex, 8).setValue(appData[i].eventName) // H
+
+    // Set conference location and time
+    if (appData[i].location || appData[i].eventDate) {
+      sheet.getRange(rowIndex, 11).setValue(appData[i].location)
+      sheet.getRange(rowIndex, 12).setValue(appData[i].eventDate)
     }
-    sheet.getRange(rowIndex, 4).setValue(appData[i].requested); // D
-    sheet.getRange(rowIndex, 5).setValue(today); // E
-    sheet.getRange(rowIndex, 8).setValue(appData[i].eventName); // H
 
     /*
     // FLAG KENNETH - Insert conference date/time here, and find appData prerequisites to include.
@@ -567,18 +587,3 @@ function setSumFormulaForTotalBudget(sheet) {
     targetCell.setFormula(formula);
   });
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
