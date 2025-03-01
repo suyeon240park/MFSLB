@@ -19,14 +19,15 @@ var sefFormSheet = SpreadsheetApp.openById(sefFormSheetId);
 
 var sef = []
 
-var orgName_idx = 2; // Column C
-var applicationLink_idx = 5; // Column F
-var requested_idx = 6; // Column G
-var totalAmount_idx = 7; // Column H
-var lifespan_idx = 8; // Column I
-var numStudents_idx = 9; // Column J
-var projectTitle_idx = 10; // Column K
-var approved_idx = 11; // Column L
+// For SEF applications
+var orgNameSEF_idx = 2; // Column C
+var applicationLinkSEF_idx = 5; // Column F
+var requestedSEF_idx = 6; // Column G
+var totalAmountSEF_idx = 7; // Column H
+var lifespanSEF_idx = 8; // Column I
+var numStudentsSEF_idx = 9; // Column J
+var projectTitleSEF_idx = 10; // Column K
+var approvedSEF_idx = 11; // Column L
 
 function closeTheFormSEF() {
   extractDataSEF();
@@ -44,13 +45,13 @@ function extractDataSEF() {
     var row = data[i];
     
     var extractedData = {
-      organizationName: row[orgName_idx],
-      requested: row[requested_idx],
-      totalAmount: row[totalAmount_idx],
-      numStudents: row[numStudents_idx],
-      lifespan: row[lifespan_idx],
-      applicationLink: row[applicationLink_idx],
-      projectTitle: row[projectTitle_idx]
+      organizationName: row[orgNameSEF_idx],
+      requested: row[requestedSEF_idx],
+      totalAmount: row[totalAmountSEF_idx],
+      numStudents: row[numStudentsSEF_idx],
+      lifespan: row[lifespanSEF_idx],
+      applicationLink: row[applicationLinkSEF_idx],
+      projectTitle: row[projectTitleSEF_idx]
     };
 
     // Push extracted data into the array
@@ -176,15 +177,13 @@ function createBudgetTrackerSEF() {
   var data = sheet.getDataRange().getValues();
 
   for (var i = 1; i < data.length; i++) {
-    var row = data[i];
-
     var extractedData = {
-      organizationName: row[orgName_idx],
-      requested: row[requested_idx],
-      totalAmount: row[totalAmount_idx],
-      numStudents: row[numStudents_idx],
-      lifespan: row[lifespan_idx],
-      approved: row[approved_idx]
+      organizationName: data[i][orgNameSEF_idx],
+      requested: data[i][requestedSEF_idx],
+      totalAmount: data[i][totalAmountSEF_idx],
+      numStudents: data[i][numStudentsSEF_idx],
+      lifespan: data[i][lifespanSEF_idx],
+      approved: data[i][approvedSEF_idx]
     };
 
     sef.push(extractedData);
