@@ -1,23 +1,69 @@
-# MFSLB (Make Finance Secretary's Life Better)
-MFSLB is a tool designed to streamline and automate the application processes within the Finance Committee at the University of Toronto Engineering Society. Built using JavaScript and powered by Google Apps Script, it leverages the simplicity of the language and its integration with Google Services. The project was developed by Finance Secretary Suyeon Park and Members at Large Kenneth Sulimro from 2023 to 2024 to alleviate the time-consuming tasks associated with preparing for monthly Finance Committee meetings, which previously took over five hours - Now it is done with just one click!
+# MFSLB — Make Finance Secretary's Life Better
 
-# Introduction Video
-Watch the introduction video to [Finance Committee Workflow](https://www.youtube.com/watch?v=0HXMRhMQp8E)
+MFSLB is a Google Apps Script automation built for the University of Toronto Engineering Society Finance Committee. It automates repetitive administrative work around monthly funding applications, document organization, reviewer assignment, meeting preparation, and post-meeting budget tracking.
 
-Watch the introduction video to [MFSLB Project](https://www.youtube.com/watch?v=mau6UkN7GC0)
+The project was developed by Finance Secretary Suyeon Park with Kenneth Sulimro during 2023–2024. The workflow was created to replace a manual preparation process that previously took several hours with a mostly automated sequence of operations.
 
-# Features
-1. **Automated Form Management**: Open and close forms based on time triggers.
-2. **Application Distribution**: Categorize applications and allocate files to corresponding folders.
-3. **Data Extraction**: Extract and record important data from applications in a spreadsheet.
-4. **Meeting Minutes**: Generate meeting minutes from extracted data.
-5. **Comment Sheet**: Create a comment sheet with random member reviews of applications.
-6. **Budget Tracking**: Record approved amounts and analyze budget trends post-meeting.
+## What It Automates
 
-# Project Link
-If you are the VP Finance or Finance Secretary, your school Google account has access to this project. Finance Committee members interested in MFSLB can request access from them.
+1. **Monthly form management** — archives the previous response sheet, resets the form, and prepares the next monthly intake cycle.
+2. **Application file organization** — categorizes uploaded files and moves them into application-type folders.
+3. **Data extraction** — reads form responses and transforms the relevant fields into structured application data.
+4. **Reviewer assignment** — assigns pairs of Finance Committee members to applications for review.
+5. **Meeting-document generation** — creates meeting agenda/minutes documents from templates and application data.
+6. **Comment-sheet generation** — prepares a review sheet populated with applications and assigned reviewers.
+7. **Budget tracking** — records approved/requested funding information after meetings and updates aggregate formulas.
 
-[Project Link](https://script.google.com/u/0/home/projects/13vFuazKy_95qw1w-bhBdJIZ-hKOiILK3uADF2UMU05AqXHDP3l9RGbfs)
+## Workflow
 
-# Contact
-For any issues or questions, please reach out to [me](mailto:suyeon.park1216@gmail.com).
+```text
+Google Form submission
+        |
+        v
+Google Apps Script
+   |        |        |
+   v        v        v
+Drive     Sheets    Docs
+files     review    meeting
+organized sheets    agenda/minutes
+        \    |    /
+             v
+       Budget tracker
+```
+
+## Configuration
+
+The source code intentionally does not hard-code the main Google Form, Drive, Sheet, or document-template resource IDs. They are loaded from Google Apps Script **Script Properties**.
+
+The deployment expects properties including:
+
+```text
+FORM_ID
+INTERNAL_DRIVE_ID
+PARENT_FOLDER_ID
+MINUTES_TEMPLATE_ID
+COMMENT_SHEET_ID
+TRACKER_SHEET_ID
+```
+
+Runtime-created values such as the current month's folder ID and URL are also stored through `PropertiesService`.
+
+Production Google resource IDs, committee documents, form responses, and other private Finance Committee data are not intended to be committed to this repository.
+
+## Source Layout
+
+- `main.gs` — primary Finance Committee workflow and document automation.
+- supporting Apps Script files — helper/configuration logic used by the workflow.
+
+## Demo Videos
+
+- [Finance Committee Workflow](https://www.youtube.com/watch?v=0HXMRhMQp8E)
+- [MFSLB Project](https://www.youtube.com/watch?v=mau6UkN7GC0)
+
+## Access
+
+The production Apps Script project and its associated Google Workspace resources are restricted to authorized Engineering Society accounts. This public repository is intended to demonstrate the automation logic without exposing access to the underlying committee data.
+
+## Notes
+
+MFSLB was developed around a real committee workflow whose forms and spreadsheet layouts can change over time. Column mappings and template assumptions therefore need to be reviewed when the underlying Finance Committee documents change.
