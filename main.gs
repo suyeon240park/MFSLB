@@ -100,8 +100,9 @@ function openForm() {
 
 // When the user submits the form, categorize applications and allocate files to corresponding folders.
 function onFormSubmit(e) {
-  if (!e) { // TODO: implement debouncing
+  if (!e) {
     Logger.log("Event object is undefined");
+    return;
   }
 
   // Retrieve the month folder ID from the Properties Service
@@ -455,7 +456,7 @@ function createBudgetTracker() {
 
 // Actual recording of budget tracker
 function insertBudgetTracker(appData, applicationType, numCol) {
-  var approvedDate = "11/30/2024"
+  var approvedDate = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "MM/dd/yyyy");
   var budgetTracker = SpreadsheetApp.openById(trackerSheetId);
   var sheet = budgetTracker.getSheetByName(applicationType);
 
